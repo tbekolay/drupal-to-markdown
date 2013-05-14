@@ -19,25 +19,36 @@ The functions in this repository should form
 a good template for you to make your own
 functions to extract the data you want.
 
-Here's how to get this working:
+Instructions
+------------
 
 1. Dump the Drupal database using the
    [Backup and Migrate module](http://drupal.org/project/backup_migrate).
-   This may work with raw database dumps, but this is how I did it.
-2. Make a local copy of the Drupal database by installing mysql server
+   This may work with raw database dumps, or a live Drupal database,
+   but this is how I did it.
+
+2. Make a local copy of the Drupal database by installing mysql-server
    and loading the database dump with
-     ```mysql.server start
-     mysql -u root
-     mysql> CREATE DATABASE drupal;
-     mysql> exit
-     mysql -u root drupal < /path/to/file.mysql
-     ```
-3. Install the dependencies: SQLAlchemy, mysql-python, and html2text.
-   `pip install SQLAlchemy mysql-python html2text`.
+   ```
+   mysql.server start
+   mysql -u root
+   mysql> CREATE DATABASE drupal;
+   mysql> exit
+   mysql -u root drupal < /path/to/file.mysql
+   ```
+   Obviously there's no notion of security here.
+   I uninstalled mysql-server after running this script.
+
+3. Install the dependencies: SQLAlchemy, mysql-python, and html2text. E.g.,
+   ```
+   pip install SQLAlchemy mysql-python html2text
+   ```
+
 4. Run `convert.py` and provide a string  pointing to the Drupal database
    (see
    [SQLAlchemy docs](http://docs.sqlalchemy.org/en/rel_0_8/core/engines.html#mysql)).
    E.g., `python convert.py "mysql://root@localhost/drupal"`
+
 5. Your content should now be in the `content` directory.
 
 Feel free to use this code for whatever;
