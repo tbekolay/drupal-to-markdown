@@ -5,7 +5,7 @@ import sys
 
 import sqlalchemy as sa
 import html2text
-
+import chardet
 
 ### Helper functions
 outdir = 'content'
@@ -37,7 +37,8 @@ def to_markdown(text, t_format):
             html = text.replace('\n', '<br>')
         else:
             html = text
-        return html2text.html2text(html.decode('utf-8')).encode('utf-8')
+        encoding = chardet.detect(html)['encoding']
+        return html2text.html2text(html.decode(encoding)).encode('utf-8')
 
     return text
 
@@ -72,11 +73,22 @@ def save_users(meta, directory='people'):
     # Write to disk
     for bio in biographies.select().execute():
         userfile = os.path.join(userdir,
-                                bio.field_name_value.replace(' ', '-') + '.md')
+                                slugify(bio.field_name_value) + '.md')
         with open(userfile, 'w') as f:
+            group = bio.taxonomy_term_data_name
+            if 'master' in group.lower() or 'phd' in group.lower():
+                group = 'Grad students'
+            if group == "Undergraduate Student":
+                group = "Undergrad students"
+            if group == 'Postdoc':
+                group += 's'
             f.write('name: ' + bio.field_name_value + '\n')
             f.write('email: ' + bio.mail + '\n')
-            f.write('position: ' + bio.taxonomy_term_data_name + '\n')
+            f.write('one_liner: One-liner \n')
+            f.write('group: ' + group + '\n')
+            f.write('title: ' + bio.taxonomy_term_data_name + '\n')
+            f.write('picture: /static/faceholder.jpg \n')
+            f.write('links: \n    - text: None\n      url: #\n')
             f.write('\n')
             f.write(to_markdown(bio.field_aboutme_value,
                                 bio.field_aboutme_format) + '\n')
@@ -88,12 +100,15 @@ def save_articles(meta, directory='blog'):
     # Get tables
     node = meta.tables['node']
     users = meta.tables['users']
+    field_name = meta.tables['field_data_field_name']
     field_body = meta.tables['field_data_body']
 
     # Do DB magic
+    fullname = field_name.alias('fullname')
     articles = node.select(node.c.type == 'article').alias('article')
-    usersubset = sa.sql.select([users.c.uid, users.c.mail]).alias('userinfo')
-    articles = articles.join(usersubset, articles.c.uid==usersubset.c.uid)
+    usersubset = sa.sql.select([users.c.uid]).alias('userinfo')
+    usersubset = usersubset.join(fullname, fullname.c.entity_id==usersubset.c.uid)
+    articles = articles.join(usersubset, articles.c.uid==usersubset.c.userinfo_uid)
     articles = articles.join(field_body,
                              articles.c.article_nid==field_body.c.entity_id)
 
@@ -104,16 +119,14 @@ def save_articles(meta, directory='blog'):
 
         with open(articlefile, 'w') as f:
             f.write('title: ' + article.title + '\n')
-            f.write('author: ' + article.mail + '\n')
-            f.write('created: ' + to_date(article.created) + '\n')
-            if article.created != article.changed:
-                f.write('updated: ' + to_date(article.changed) + '\n')
+            f.write('author: ' + article.field_name_value + '\n')
+            f.write('date: ' + to_date(article.changed) + '\n')
             f.write('\n')
             f.write(to_markdown(article.body_value, article.body_format) + '\n')
 
 
 def save_book(meta, directory, bookid):
-    bookdir = subdir(directory)
+    bookdir = subdir('research')
 
     # Get tables
     node = meta.tables['node']
@@ -148,10 +161,8 @@ def save_book(meta, directory, bookid):
         with open(fn, 'w') as f:
             f.write('title: ' + page.title + '\n')
             f.write('parent: ' + slugify(page.parent_link_title) + '\n')
-            f.write('author: ' + page.mail + '\n')
-            f.write('created: ' + to_date(page.created) + '\n')
-            if page.created != page.changed:
-                f.write('updated: ' + to_date(page.changed) + '\n')
+            f.write('prev: \n')
+            f.write('next: \n')
             f.write('\n')
             f.write(to_markdown(page.body_value, page.body_format) + '\n')
 

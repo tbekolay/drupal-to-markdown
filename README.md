@@ -33,15 +33,16 @@ Instructions
    mysql.server start
    mysql -u root
    mysql> CREATE DATABASE drupal;
-   mysql> exit
-   mysql -u root drupal < /path/to/file.mysql
+   mysql> use drupal;
+   mysq1> source /path/to/your.sql
+   mysql> quit;
    ```
    Obviously there's no notion of security here.
    I uninstalled mysql-server after running this script.
 
 3. Install the dependencies: SQLAlchemy, mysql-python, and html2text. E.g.,
    ```
-   pip install SQLAlchemy mysql-python html2text
+   pip install SQLAlchemy mysql-python html2text chardet
    ```
 
 4. Run `convert.py` and provide a string  pointing to the Drupal database
